@@ -18,6 +18,7 @@ import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
@@ -28,6 +29,13 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
     public void onEnable() {
         // save default config
         saveDefaultConfig();
+
+        // start metrics
+        try {
+            if (!getConfig().getBoolean("MetricsDisabled")) new Metrics(this).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // register declared event handlers
         Bukkit.getPluginManager().registerEvents(this, this);

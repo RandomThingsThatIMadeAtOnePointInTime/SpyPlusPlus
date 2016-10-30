@@ -1,4 +1,5 @@
 Debug: false
+MetricsDisabled: false
 PrintMessagesToConsole: true
 RemoveDisconnectedPlayersFromSubscribedPlayers: true
 
