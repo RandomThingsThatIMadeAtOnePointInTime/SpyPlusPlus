@@ -1,0 +1,22 @@
+name: SpyPlusPlus
+version: ${project.version}
+description: When social spy just isn't enough.
+author: Scarsz
+website: https://github.com/Scarsz/SpyPlusPlus
+
+main: github.scarsz.spyplusplus.SpyPlusPlus
+database: false
+
+commands:
+  spyplusplus:
+    description: Toggle SpyPlusPlus messages
+    permission: spyplusplus.toggle
+    aliases: [spp]
+
+permissions:
+  spyplusplus.toggle:
+    description: Whether or not the user is able to toggle SpyPlusPlus messages on/off
+    default: false
+  spyplusplus.onjoin:
+    description: Whether or not the user is automatically subscribed to SpyPlusPlus messages when they join
+    default: false

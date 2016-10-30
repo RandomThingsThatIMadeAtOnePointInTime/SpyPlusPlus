@@ -1,0 +1,14 @@
+Debug: false
+PrintMessagesToConsole: true
+RemoveDisconnectedPlayersFromSubscribedPlayers: true
+
+Instructions:
+- See the "Direct Known Subclasses" of each "Direct Known Subclass" listed at https://hub.spigotmc.org/javadocs/spigot/org/bukkit/event/Event.html for the names of different events you can listen for
+- The format for the event lines is the event class to listen for, a pipe '|', then the message that should be sent for it.
+- You can evaluate through methods to variables by encasing the path in brackets as has been done already in the provided directives.
+- Do NOT put the parenthesis on method names in the evaluation brackets; methods in the evaluation brackets are NOT allowed to have ANY required parameters for them.
+Events:
+- "AnvilItemDisplayNameChangeEvent|&cSPP &fANVIL&c: {getPlayer.getName} &f@ &cX&f{getLocation.getX} &cY&f{getLocation.getY} &cZ&f{getLocation.getZ}&c: &f{getItemStack.getData.getItemType.toString} {getNewDisplayName}"
+- "PlayerCommandPreprocessEvent|&cSPP &fCMD&c: {getPlayer.getName} &f@ &cX&f{getPlayer.getLocation.getX} &cY&f{getPlayer.getLocation.getY} &cZ&f{getPlayer.getLocation.getZ}&c: &f{getMessage}"
+- "PlayerEditBookEvent|&cSPP &fBOOK&c: {getPlayer.getName} &f@ &cX&f{getPlayer.getLocation.getX} &cY&f{getPlayer.getLocation.getY} &cZ&f{getPlayer.getLocation.getZ}&c: &f{getNewBookMeta.getPages}"
+- "SignChangeEvent|&cSPP &fSIGN&c: {getPlayer.getName} &f@ &cX&f{getBlock.getX} &cY&f{getBlock.getY} &cZ&f{getBlock.getZ}&c: &f{getLines}"
