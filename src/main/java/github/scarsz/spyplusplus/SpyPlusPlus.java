@@ -24,7 +24,7 @@ import java.util.*;
 
 public class SpyPlusPlus extends JavaPlugin implements Listener {
 
-    private List<Player> subscribedPlayers = new ArrayList<>();
+    private List<UUID> subscribedPlayers = new ArrayList<>();
 
     public void onEnable() {
         // save default config
@@ -50,13 +50,14 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
                     e.printStackTrace();
                 }
             }
-        }, EventPriority.NORMAL, this, false);
-        for (HandlerList handler : HandlerList.getHandlerLists())
-            handler.register(registeredListener);
+        }, EventPriority.MONITOR, this, false);
+        for (HandlerList handler : HandlerList.getHandlerLists()) handler.register(registeredListener);
+
         AnvilItemDisplayNameChangeEvent.getHandlerList().register(registeredListener);
         PlayerEditBookEvent.getHandlerList().register(registeredListener);
     }
 
+    @SuppressWarnings("unused")
     public void onEvent(Event event) {
         if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Received event " + event.getClass().getSimpleName());
 
@@ -82,13 +83,14 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
                         Object current = event;
                         for (String part : evaluationChain.split("\\.")) {
                             try {
-                                current = current.getClass().getMethod(part, null).invoke(current, null);
+                                current = current.getClass().getMethod(part, (Class<?>) null).invoke(current, (Object) null);
                             } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 e.printStackTrace();
                             }
                         }
                         switch (current.getClass().getSimpleName()) {
                             case "Class":
+                                //noinspection ConstantConditions
                                 message += ((Class) current).getSimpleName();
                                 break;
                             case "Double":
@@ -107,7 +109,7 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
 
             message = ChatColor.translateAlternateColorCodes('&', message);
             if (getConfig().getBoolean("PrintMessagesToConsole")) getLogger().info(ChatColor.stripColor(message));
-            for (Player player : Bukkit.getOnlinePlayers()) if (subscribedPlayers.contains(player)) player.sendMessage(message);
+            for (Player player : Bukkit.getOnlinePlayers()) if (subscribedPlayers.contains(player.getUniqueId())) player.sendMessage(message);
         }
     }
 
@@ -115,7 +117,7 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (event.getPlayer().hasPermission("spyplusplus.onjoin")) {
-            subscribedPlayers.add(event.getPlayer());
+            if (!subscribedPlayers.contains(event.getPlayer().getUniqueId())) subscribedPlayers.add(event.getPlayer().getUniqueId());
             event.getPlayer().sendMessage(ChatColor.RED + "You've been automatically subscribed to SpyPlusPlus messages from your " + ChatColor.WHITE + "spyplusplus.onjoin" + ChatColor.RED + " permission.");
         }
     }
@@ -123,7 +125,7 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
     // remove disconnected players from the subscribed players list to save on memory
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        if (getConfig().getBoolean("RemoveDisconnectedPlayersFromSubscribedPlayers")) subscribedPlayers.remove(event.getPlayer());
+        if (getConfig().getBoolean("RemoveDisconnectedPlayersFromSubscribedPlayers")) subscribedPlayers.remove(event.getPlayer().getUniqueId());
     }
 
     // /spyplusplus command
@@ -140,10 +142,10 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
         }
         Player senderPlayer = (Player) sender;
 
-        if (!subscribedPlayers.contains(senderPlayer)) subscribedPlayers.add(senderPlayer);
-        else subscribedPlayers.remove(senderPlayer);
+        if (!subscribedPlayers.contains(senderPlayer.getUniqueId())) subscribedPlayers.add(senderPlayer.getUniqueId());
+        else subscribedPlayers.remove(senderPlayer.getUniqueId());
 
-        senderPlayer.sendMessage(ChatColor.RED + "You have been " + ChatColor.WHITE + (subscribedPlayers.contains(senderPlayer) ? "" : "un") + "subscribed" + ChatColor.RED + " to SpyPlusPlus messages.");
+        senderPlayer.sendMessage(ChatColor.RED + "You have been " + ChatColor.WHITE + (subscribedPlayers.contains(senderPlayer.getUniqueId()) ? "" : "un") + "subscribed" + ChatColor.RED + " to SpyPlusPlus messages.");
 
         return true;
     }
