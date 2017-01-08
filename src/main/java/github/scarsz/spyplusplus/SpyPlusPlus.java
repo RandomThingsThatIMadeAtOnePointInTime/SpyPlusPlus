@@ -40,77 +40,86 @@ public class SpyPlusPlus extends JavaPlugin implements Listener {
         // register declared event handlers
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        // listen to all events
-        RegisteredListener registeredListener = new RegisteredListener(this, new EventExecutor() {
+        final SpyPlusPlus plugin = this;
+        Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
             @Override
-            public void execute(Listener listener, Event event) throws EventException {
-                try {
-                    listener.getClass().getDeclaredMethod("onEvent", Event.class).invoke(listener, event);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, EventPriority.MONITOR, this, false);
-        for (HandlerList handler : HandlerList.getHandlerLists()) handler.register(registeredListener);
+            public void run() {
+                System.out.println("exec");
 
-        AnvilItemDisplayNameChangeEvent.getHandlerList().register(registeredListener);
-        PlayerEditBookEvent.getHandlerList().register(registeredListener);
-    }
+                // listen to all events
+                RegisteredListener registeredListener = new RegisteredListener(new Listener() {
+                    public void onEvent(Event event) {
+                        if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Received event " + event.getClass().getSimpleName());
 
-    @SuppressWarnings("unused")
-    public void onEvent(Event event) {
-        if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Received event " + event.getClass().getSimpleName());
+                        for (String eventDirective : getConfig().getStringList("Events")) {
+                            if (!eventDirective.split("\\|")[0].equalsIgnoreCase(event.getClass().getSimpleName())) continue;
+                            if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Found matching event directive: " + eventDirective);
 
-        for (String eventDirective : getConfig().getStringList("Events")) {
-            if (!eventDirective.split("\\|")[0].equalsIgnoreCase(event.getClass().getSimpleName())) continue;
-            if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Found matching event directive: " + eventDirective);
+                            List<String> eventDirectiveSplit = new LinkedList<>(Arrays.asList(eventDirective.split("\\|")));
+                            eventDirectiveSplit.remove(0);
+                            String directive = StringUtils.join(eventDirectiveSplit, ".");
 
-            List<String> eventDirectiveSplit = new LinkedList<>(Arrays.asList(eventDirective.split("\\|")));
-            eventDirectiveSplit.remove(0);
-            String directive = StringUtils.join(eventDirectiveSplit, ".");
-
-            String message = "";
-            String evaluationChain = "";
-            boolean chaining = false;
-            for (char c : directive.toCharArray()) {
-                if (c != '{' && c != '}') {
-                    if (!chaining) message += c;
-                    else evaluationChain += c;
-                } else {
-                    chaining = !chaining;
-                    if (!chaining) {
-                        if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Starting evaluation of chain: " + evaluationChain);
-                        Object current = event;
-                        for (String part : evaluationChain.split("\\.")) {
-                            try {
-                                current = current.getClass().getMethod(part, (Class<?>) null).invoke(current, (Object) null);
-                            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                                e.printStackTrace();
+                            String message = "";
+                            String evaluationChain = "";
+                            boolean chaining = false;
+                            for (char c : directive.toCharArray()) {
+                                if (c != '{' && c != '}') {
+                                    if (!chaining) message += c;
+                                    else evaluationChain += c;
+                                } else {
+                                    chaining = !chaining;
+                                    if (!chaining) {
+                                        if (getConfig().getBoolean("Debug")) getLogger().info("[DEBUG] Starting evaluation of chain: " + evaluationChain);
+                                        Object current = event;
+                                        for (String part : evaluationChain.split("\\.")) {
+                                            try {
+                                                current = current.getClass().getMethod(part, null).invoke(current, null);
+                                            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                        switch (current.getClass().getSimpleName()) {
+                                            case "Class":
+                                                //noinspection ConstantConditions
+                                                message += ((Class) current).getSimpleName();
+                                                break;
+                                            case "Double":
+                                            case "Long":
+                                                message += Integer.valueOf(String.valueOf(current).split("\\.")[0]);
+                                                break;
+                                            default:
+                                                if (!(current instanceof Object[])) message += current.toString();
+                                                else message += Arrays.toString((Object[]) current);
+                                                break;
+                                        }
+                                        evaluationChain = "";
+                                    }
+                                }
                             }
-                        }
-                        switch (current.getClass().getSimpleName()) {
-                            case "Class":
-                                //noinspection ConstantConditions
-                                message += ((Class) current).getSimpleName();
-                                break;
-                            case "Double":
-                            case "Long":
-                                message += Integer.valueOf(String.valueOf(current).split("\\.")[0]);
-                                break;
-                            default:
-                                if (!(current instanceof Object[])) message += current.toString();
-                                else message += Arrays.toString((Object[]) current);
-                                break;
-                        }
-                        evaluationChain = "";
-                    }
-                }
-            }
 
-            message = ChatColor.translateAlternateColorCodes('&', message);
-            if (getConfig().getBoolean("PrintMessagesToConsole")) getLogger().info(ChatColor.stripColor(message));
-            for (Player player : Bukkit.getOnlinePlayers()) if (subscribedPlayers.contains(player.getUniqueId())) player.sendMessage(message);
-        }
+                            message = ChatColor.translateAlternateColorCodes('&', message);
+                            if (getConfig().getBoolean("PrintMessagesToConsole")) getLogger().info(ChatColor.stripColor(message));
+                            for (Player player : Bukkit.getOnlinePlayers()) if (subscribedPlayers.contains(player.getUniqueId())) player.sendMessage(message);
+                        }
+                    }
+                }, new EventExecutor() {
+                    @Override
+                    public void execute(Listener listener, Event event) throws EventException {
+                        try {
+                            listener.getClass().getDeclaredMethod("onEvent", Event.class).invoke(listener, event);
+                        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, EventPriority.MONITOR, plugin, false);
+                for (HandlerList handler : HandlerList.getHandlerLists()) handler.register(registeredListener);
+
+                AnvilItemDisplayNameChangeEvent.getHandlerList().unregister(registeredListener);
+                AnvilItemDisplayNameChangeEvent.getHandlerList().register(registeredListener);
+                PlayerEditBookEvent.getHandlerList().unregister(registeredListener);
+                PlayerEditBookEvent.getHandlerList().register(registeredListener);
+            }
+        }, 100);
     }
 
     // spyplusplus.onjoin functionality
